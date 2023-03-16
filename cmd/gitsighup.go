@@ -3,9 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v3"
+	"net/http"
 	"os"
+	"wikis.io/action"
+
 	config2 "wikis.io/config"
+
+	"github.com/gin-gonic/gin"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -26,5 +31,34 @@ func main() {
 	}
 
 	fmt.Printf("%v", config)
+
+	r := gin.Default()
+	r.GET("/api/v1/services/:name", func(c *gin.Context) {
+		var serviceName = c.Param("name")
+		var tag = c.Query("tag")
+
+		var path string
+		for _, i := range config.Services {
+			if i.Name == serviceName {
+				path = i.Name
+				break
+			}
+		}
+
+		if path == "" {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		err = action.Action(serviceName, tag, path)
+		if err == nil {
+			c.Status(http.StatusOK)
+			return
+		}
+
+		c.Status(http.StatusBadRequest)
+	})
+
+	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 }
