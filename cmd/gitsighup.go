@@ -1,64 +1,69 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"wikis.io/action"
 
 	config2 "wikis.io/config"
 
 	"github.com/gin-gonic/gin"
-	"gopkg.in/yaml.v3"
 )
 
 func main() {
-	var configFile = flag.String("c", "", "the yaml config file")
-	flag.Parse()
-
-	var f, err = os.Open(*configFile)
+	var err = config2.LoadConfig()
 	if err != nil {
-		fmt.Printf("Failed to open config file, %s, error: %v", configFile, err)
 		os.Exit(1)
 	}
 
-	var config config2.Config
-	err = yaml.NewDecoder(f).Decode(&config)
-	if err != nil {
-		fmt.Printf("Failed to read yaml content, error: %v", err)
-		os.Exit(2)
-	}
-
-	fmt.Printf("%v", config)
+	var c = make(chan os.Signal, 10)
+	signal.Notify(c, syscall.SIGHUP)
+	go config2.Refresh(c)
 
 	r := gin.Default()
 	r.GET("/api/v1/services/:name", func(c *gin.Context) {
 		var serviceName = c.Param("name")
 		var tag = c.Query("tag")
 
-		var path string
-		for _, i := range config.Services {
-			if i.Name == serviceName {
-				path = i.Name
-				break
-			}
-		}
-
-		if path == "" {
-			c.Status(http.StatusNotFound)
+		path, ok := getPath(c, config2.GlobalConfig, serviceName)
+		if !ok {
 			return
 		}
 
-		err = action.Action(serviceName, tag, path)
+		err = action.Action(serviceName, path, tag)
 		if err == nil {
 			c.Status(http.StatusOK)
 			return
 		}
 
-		c.Status(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, map[string]string{
+			"code":    "3005",
+			"message": fmt.Sprintf("failed to update configuration: %v", err),
+		})
 	})
 
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
+}
+
+func getPath(c *gin.Context, config *config2.Config, serviceName string) (string, bool) {
+	var path string
+	for _, i := range config.Services {
+		if i.Name == serviceName {
+			path = i.ConfigPath
+			break
+		}
+	}
+
+	if path == "" {
+		c.JSON(http.StatusNotFound, map[string]string{
+			"code":    "3004",
+			"message": fmt.Sprintf("Unknown sevice '%s'", serviceName),
+		})
+		return "", false
+	}
+	return path, true
 }

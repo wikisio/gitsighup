@@ -1,11 +1,11 @@
 # gitsighup
 gitsighup run as a proxy, will git pull and send a HUP signal to the observed service process to reload configuration.
 
-## Prerequestites
+## Prerequisites
 
-1. the observed service should reload the configuraion by trapping the HUP signal. 
-1. the target process should be managed by systemd. gitsighub sends signal with command `systemctl kill --signal=HUP {serviceName}`.
-2. the configuration file should be mananged in a git repositroy. gitsighup updates configuration by `cd configPath; git pull origin {tagOrBranchOrCommit}`
+1. the observed service should reload the configuration by trapping the HUP signal. 
+2. the target process should be managed by systemd. gitsighub sends signal with command `systemctl kill --signal=HUP {serviceName}`.
+3. the configuration file should be managed in a git repository. gitsighup updates configuration by `cd configPath; git pull origin {tagOrBranchOrCommit}`
 
 
 ## API
