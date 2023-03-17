@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,6 +15,10 @@ import (
 )
 
 func main() {
+	var configFile = flag.String("c", "empty", "the yaml config file")
+	flag.Parse()
+	config2.GlobalConfigFile = *configFile
+
 	var err = config2.LoadConfig()
 	if err != nil {
 		os.Exit(1)

@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -16,15 +15,14 @@ type Service struct {
 	ConfigPath string `yaml:"configPath"`
 }
 
+var GlobalConfigFile string
 var GlobalConfig *Config
 
 func LoadConfig() error {
-	var configFile = flag.String("c", "", "the yaml config file")
-	flag.Parse()
 
-	var f, err = os.Open(*configFile)
+	var f, err = os.Open(GlobalConfigFile)
 	if err != nil {
-		fmt.Printf("Failed to open config file, %s, error: %v", configFile, err)
+		fmt.Printf("Failed to open config file, %s, error: %v\n", GlobalConfigFile, err)
 		return nil
 	}
 	defer f.Close()
@@ -32,11 +30,11 @@ func LoadConfig() error {
 	var config Config
 	err = yaml.NewDecoder(f).Decode(&config)
 	if err != nil {
-		fmt.Printf("Failed to read yaml content, error: %v", err)
+		fmt.Printf("Failed to read yaml content, error: %v\n", err)
 		return nil
 	}
 
-	fmt.Printf("config file %s loaded", *configFile)
+	fmt.Printf("config file %s loaded\n", GlobalConfigFile)
 	GlobalConfig = &config
 	return nil
 }
