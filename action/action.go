@@ -4,19 +4,28 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func Action(serviceName string, configPath string, gitTag string) error {
 	var err = os.Chdir(configPath)
 	if err != nil {
-		return fmt.Errorf("failed to change the dir of %s, error: %v", serviceName, err)
+		return fmt.Errorf("failed to change the dir of %s, error: %v\n", serviceName, err)
 	}
 
-	if err := runCmd("git", "pull", "-f", "origin", gitTag); err != nil {
+	if err := runCmd("git", "fetch", "--all"); err != nil {
 		return err
 	}
 
-	if err := runCmd("/usr/bin/systemctl", "kill", "--signal=HUP", serviceName); err != nil {
+	if err := runCmd("git", "reset", "--hard", "origin/"+gitTag); err != nil {
+		return err
+	}
+
+	if err := runCmd("git", "rebase", "origin/"+gitTag); err != nil {
+		return err
+	}
+
+	if err := runCmd("systemctl", "kill", "--signal=HUP", serviceName); err != nil {
 		return err
 	}
 
@@ -29,8 +38,13 @@ func runCmd(commandline string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	var err = cmd.Run()
+
 	if err != nil {
-		return fmt.Errorf("failed to run  '%s', error: %v", commandline, err)
+		if strings.Contains(err.Error(), "signal: hangup") {
+			// ignore
+		} else {
+			return fmt.Errorf("failed to run  '%s', error: %v\n", commandline, err)
+		}
 	}
 
 	return nil
