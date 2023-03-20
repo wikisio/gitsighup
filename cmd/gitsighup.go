@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
 	"wikis.io/action"
 
 	config2 "wikis.io/config"
@@ -32,6 +33,7 @@ func main() {
 	r.GET("/api/v1/services/:name", func(c *gin.Context) {
 		var serviceName = c.Param("name")
 		var tag = c.Query("tag")
+		var restart = c.Query("restart")
 
 		path, ok := getPath(c, config2.GlobalConfig, serviceName)
 		if !ok {
@@ -43,6 +45,8 @@ func main() {
 			c.Status(http.StatusOK)
 			return
 		}
+
+		err = action.Restart(serviceName, path, restart)
 
 		c.JSON(http.StatusBadRequest, map[string]string{
 			"code":    "3005",
