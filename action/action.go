@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 )
 
@@ -33,15 +32,10 @@ func Action(serviceName string, configPath string, gitTag string) error {
 	return nil
 }
 
-func Restart(serviceName string, configPath string, restart string) error {
-	r, err := strconv.ParseBool(restart)
-	if err != nil {
-		return fmt.Errorf("valid Restart: true|false")
-	}
-	if r {
-		if err = runCmd("systemctl", "restart", serviceName); err != nil {
-			return err
-		}
+func Restart(serviceName string, configPath string) error {
+
+	if err := runCmd("systemctl", "restart", serviceName); err != nil {
+		return err
 	}
 	return nil
 }

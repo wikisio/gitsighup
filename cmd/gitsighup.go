@@ -30,10 +30,9 @@ func main() {
 	go config2.Refresh(c)
 
 	r := gin.Default()
-	r.GET("/api/v1/services/:name", func(c *gin.Context) {
+	r.PUT("/api/v1/services/:name", func(c *gin.Context) {
 		var serviceName = c.Param("name")
 		var tag = c.Query("tag")
-		var restart = c.Query("restart")
 
 		path, ok := getPath(c, config2.GlobalConfig, serviceName)
 		if !ok {
@@ -46,7 +45,7 @@ func main() {
 			return
 		}
 
-		err = action.Restart(serviceName, path, restart)
+		err = action.Restart(serviceName, path)
 
 		c.JSON(http.StatusBadRequest, map[string]string{
 			"code":    "3005",
