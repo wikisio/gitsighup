@@ -2,17 +2,29 @@ package config
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Services []Service
+	Services  []Service `yaml:"services"`
+	ConfigSrv ConfigSrv `yaml:"configsrv"`
 }
 
 type Service struct {
-	Name       string `yaml:"name"`
-	ConfigPath string `yaml:"configPath"`
+	Name       string       `yaml:"name"`
+	NameSpace  string       `yaml:"namespace"`
+	ConfigPath []ConfigPath `yaml:"configPath"`
+}
+
+type ConfigPath struct {
+	Src string `yaml:"src"`
+	Dst string `yaml:"dst"`
+}
+
+type ConfigSrv struct {
+	EndPoint string `yaml:"endpoint"`
 }
 
 var GlobalConfigFile string

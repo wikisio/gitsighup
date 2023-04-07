@@ -2,6 +2,8 @@ package action
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -56,4 +58,60 @@ func runCmd(commandline string, args ...string) error {
 	}
 
 	return nil
+}
+
+func ADD(namespace string, service string, filename string, dst string) error {
+	var err = os.Chdir(dst)
+	if err != nil {
+		return fmt.Errorf("failed to change the dir of %s, error: %v", service, err)
+	}
+	url := "http://localhost:8080/" + namespace + "/" + service + "/" + filename
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	file, err := os.Create(filename + ".yml")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	file.Write(body)
+
+	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
+		return err
+	}
+	return Restart(service, dst)
+}
+
+func EDIT(namespace string, service string, filename string, dst string) error {
+	var err = os.Chdir(dst)
+	if err != nil {
+		return fmt.Errorf("failed to change the dir of %s, error: %v", service, err)
+	}
+	url := "http://localhost:8080/" + namespace + "/" + service + "/" + filename
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	file, err := os.Open(filename + ".yml")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	file.Write(body)
+
+	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
+		return err
+	}
+	return Restart(service, dst)
 }
