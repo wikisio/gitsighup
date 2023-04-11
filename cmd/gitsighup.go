@@ -40,7 +40,7 @@ func main() {
 		namespace = i.NameSpace
 		service = i.Name
 	}
-	url := ""
+	url := "http://127.0.0.1:3000/api/v1/configsrv/"
 	SendRequest(url, namespace, service, filename, dst)
 
 }
@@ -49,9 +49,11 @@ func SendRequest(url string, namespace string, service string, filename string, 
 	defer func() {
 		err := recover()
 		if err != nil {
-			fmt.Printf("check login table error:%v", err)
+			fmt.Printf("connect failed:%v", err)
 		}
 	}()
+	url = url + namespace + "/" + service + "/" + filename
+
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)

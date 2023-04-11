@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	config2 "wikis.io/config"
 )
 
 func Action(serviceName string, configPath string, gitTag string) error {
@@ -72,7 +74,7 @@ func ADD(namespace string, service string, filename string, dst string) error {
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	file, err := os.Create(filename + ".yml")
@@ -100,7 +102,7 @@ func EDIT(namespace string, service string, filename string, dst string) error {
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	file, err := os.Open(filename + ".yml")
@@ -113,5 +115,12 @@ func EDIT(namespace string, service string, filename string, dst string) error {
 	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
 		return err
 	}
+	if service == "gitsighup" {
+		err = config2.LoadConfig()
+		if err != nil {
+			os.Exit(1)
+		}
+	}
+
 	return Restart(service, dst)
 }
