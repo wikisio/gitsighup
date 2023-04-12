@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	"wikis.io/action"
 	config2 "wikis.io/config"
 )
+
+var jwt string = "jwt"
 
 func main() {
 	var configFile = flag.String("c", "C:/Users/82742/fork/configsrv.yml", "the yaml config file")
@@ -27,6 +30,10 @@ func main() {
 	var c = make(chan os.Signal, 10)
 	signal.Notify(c, syscall.SIGHUP)
 	go config2.Refresh(c)
+	jwt, err = Login()
+	if err != nil {
+		os.Exit(401)
+	}
 
 	var namespace string
 	var service string
@@ -40,7 +47,7 @@ func main() {
 				filename = j.Src
 				dst = j.Dst
 				url := "http://127.0.0.1:3000/api/v1/configsrv/"
-				SendRequest(url, namespace, service, filename, dst)
+				SendRequest(url, namespace, service, filename, dst, jwt)
 			}
 
 		}
@@ -48,9 +55,7 @@ func main() {
 
 }
 
-var jwt string = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzeXNfcm9sZSI6InVzZXIiLCJ0b2tlbiI6IjFlZGQ4ZDQxLTg3MzEtNjkxOC1hNjU5LWMxZDE2MDVlZjBlZiIsInVzZXIiOiJ0ZXN0dXNlciJ9.vDmpubot2JHF8gZPUl-XQb1LPS-fIiLesIq-T9qpJY0"
-
-func SendRequest(url string, namespace string, service string, filename string, dst string) {
+func SendRequest(url string, namespace string, service string, filename string, dst string, jwt string) {
 	defer func() {
 		err := recover()
 		if err != nil {
@@ -72,9 +77,6 @@ func SendRequest(url string, namespace string, service string, filename string, 
 	//登录
 	if err != nil {
 		panic(err)
-	}
-	if resp.StatusCode == 401 {
-		jwt = Login()
 	}
 	if resp.StatusCode == 200 {
 		body, err := io.ReadAll(resp.Body)
@@ -99,22 +101,24 @@ type CfgResult struct {
 	CfgMsg   string `json:"cfgMsg"`   // 传输配置的信息
 }
 
-func Login() string {
+func Login() (string, error) {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "http://127.0.0.1:3000/api/v1/session/login", nil)
+	buf := bytes.NewBuffer([]byte(`{ "username": "testuser",
+"password": "123456"}`))
+	req, err := http.NewRequest("POST", "http://127.0.0.1:3000/api/v1/session/login", buf)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	body := `{ "username": "testuser",
-"password": "123456"}`
-	req.Body.Read([]byte(body))
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	defer resp.Body.Close()
 	returnBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
 	var result string
 	json.Unmarshal(returnBody, &result)
-	return result
+	return result, nil
 }
