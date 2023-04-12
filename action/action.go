@@ -1,9 +1,8 @@
 package action
 
 import (
+	"encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -62,27 +61,22 @@ func runCmd(commandline string, args ...string) error {
 	return nil
 }
 
-func ADD(namespace string, service string, filename string, dst string) error {
+func ADD(CfgMsg string, namespace string, service string, filename string, dst string) error {
 	var err = os.Chdir(dst)
 	if err != nil {
 		return fmt.Errorf("failed to change the dir of %s, error: %v", service, err)
 	}
-	url := "http://localhost:8080/" + namespace + "/" + service + "/" + filename
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
 
+	data, err := base64.StdEncoding.DecodeString(CfgMsg)
+	if err != nil {
+		return err
+	}
 	file, err := os.Create(filename + ".yml")
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	file.Write(body)
+	file.Write(data)
 
 	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
 		return err
@@ -90,17 +84,12 @@ func ADD(namespace string, service string, filename string, dst string) error {
 	return Restart(service, dst)
 }
 
-func EDIT(namespace string, service string, filename string, dst string) error {
+func EDIT(CfgMsg string, namespace string, service string, filename string, dst string) error {
 	var err = os.Chdir(dst)
 	if err != nil {
 		return fmt.Errorf("failed to change the dir of %s, error: %v", service, err)
 	}
-	url := "http://localhost:8080/" + namespace + "/" + service + "/" + filename
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(resp.Body)
+	data, err := base64.StdEncoding.DecodeString(CfgMsg)
 	if err != nil {
 		return err
 	}
@@ -110,7 +99,7 @@ func EDIT(namespace string, service string, filename string, dst string) error {
 		return err
 	}
 	defer file.Close()
-	file.Write(body)
+	file.Write(data)
 
 	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
 		return err
