@@ -27,6 +27,22 @@ type ConfigSrv struct {
 	EndPoint string `yaml:"endpoint"`
 }
 
+type Request struct {
+	Username string
+	Password string
+	Url      string
+	Type     string
+}
+
+var ApiUrl = string("http://127.0.0.1:3000/api/v1/configsrv/")
+
+var RequestMsg = Request{
+	Username: "testuser",
+	Password: "123456",
+	Url:      "http://127.0.0.1:3000/api/v1/session/login",
+	Type:     "POST",
+}
+
 var GlobalConfigFile string
 var GlobalConfig *Config
 
