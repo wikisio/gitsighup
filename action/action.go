@@ -1,10 +1,13 @@
 package action
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+
+	config2 "wikis.io/config"
 )
 
 func Action(serviceName string, configPath string, gitTag string) error {
@@ -56,4 +59,61 @@ func runCmd(commandline string, args ...string) error {
 	}
 
 	return nil
+}
+
+func Add(CfgMsg string, namespace string, service string, filename string, dst string) error {
+	var err = os.Chdir(dst)
+	if err != nil {
+		return fmt.Errorf("failed to change the dir %s, error: %v", dst, err)
+	}
+
+	data, err := base64.StdEncoding.DecodeString(CfgMsg)
+	if err != nil {
+		return fmt.Errorf("decode err : %v", err)
+	}
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("create file err : %v", err)
+	}
+	defer file.Close()
+	_, err = file.Write(data)
+	if err != nil {
+		return fmt.Errorf("write data err : %v", err)
+	}
+
+	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
+		return fmt.Errorf("run cmd err : %v", err)
+	}
+	return Restart(service, dst)
+}
+
+func Edit(CfgMsg string, namespace string, service string, filename string, dst string) error {
+	var err = os.Chdir(dst)
+	if err != nil {
+		return fmt.Errorf("failed to change the dir of %s, error: %v", service, err)
+	}
+	data, err := base64.StdEncoding.DecodeString(CfgMsg)
+	if err != nil {
+		return fmt.Errorf("decode err : %v", err)
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("open data err : %v", err)
+	}
+	defer file.Close()
+	_, err = file.Write(data)
+	if err != nil {
+		return fmt.Errorf("write data err : %v", err)
+	}
+	if err := runCmd("systemctl", "kill", "--signal=HUP", service); err != nil {
+		return fmt.Errorf("run cmd err : %v", err)
+	}
+	if service == "gitsighup" {
+		if err = config2.LoadConfig(); err != nil {
+			os.Exit(1)
+		}
+	}
+
+	return Restart(service, dst)
 }

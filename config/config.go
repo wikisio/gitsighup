@@ -2,17 +2,45 @@ package config
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Services []Service
+	Services  []Service `yaml:"services"`
+	ConfigSrv ConfigSrv `yaml:"configsrv"`
 }
 
 type Service struct {
-	Name       string `yaml:"name"`
-	ConfigPath string `yaml:"configPath"`
+	Name       string       `yaml:"name"`
+	NameSpace  string       `yaml:"namespace"`
+	ConfigPath []ConfigPath `yaml:"configPath"`
+}
+
+type ConfigPath struct {
+	Src string `yaml:"src"`
+	Dst string `yaml:"dst"`
+}
+
+type ConfigSrv struct {
+	EndPoint string `yaml:"endpoint"`
+}
+
+type Request struct {
+	Username string
+	Password string
+	Url      string
+	Type     string
+}
+
+var ApiUrl = string("http://127.0.0.1:3000/api/v1/configsrv/")
+
+var RequestMsg = Request{
+	Username: "testuser",
+	Password: "123456",
+	Url:      "http://127.0.0.1:3000/api/v1/session/login",
+	Type:     "POST",
 }
 
 var GlobalConfigFile string
